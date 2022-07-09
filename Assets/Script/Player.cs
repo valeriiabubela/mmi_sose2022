@@ -13,14 +13,17 @@ public class Player : MonoBehaviour
     public LayerMask playerMask;
     private bool jumpKeyPressed;
     private bool collection;
+    private bool forwardmove;
+    private bool backwardmove;
+    private bool jumpmove;
     private float horizontalInput;
     private Rigidbody rigidbodyComponent;
     
-    public string[] keywords = new string[] { "forward", "back", "jump", "collect" };
+    public string[] keywords = new string[] {"stop", "forward", "back", "jump", "collect"};
     private int superJumpsRemaining;
     protected KeywordRecognizer keywordRecognizer;
     //private Dictionary<string, System.Action> actions = new Dictionary<string, System.Action>();
-    protected string word = "forward";
+    protected string word = "stop";
 
      // Start is called before the first frame update
     void Start()
@@ -37,7 +40,8 @@ public class Player : MonoBehaviour
         keywordRecognizer = new KeywordRecognizer(keywords, ConfidenceLevel.Low);
         keywordRecognizer.OnPhraseRecognized += RecognizedSpeech;
         keywordRecognizer.Start();
-        Debug.Log( keywordRecognizer.IsRunning );
+        Debug.Log("Use keyboard or Speech commands to move the bullet!");
+        Debug.Log( "The Keyword Recognizer is running: " + keywordRecognizer.IsRunning );
 
     }
 
@@ -49,20 +53,28 @@ public class Player : MonoBehaviour
         switch (word)
         {
             case "forward":
-                if (!Input.GetKey(KeyCode.LeftArrow) && !Input.GetKey("a")){
-                    rigidbodyComponent.AddForce(UnityEngine.Vector3.right * 30, ForceMode.VelocityChange);
+                if (!Input.GetKey(KeyCode.LeftArrow) && !Input.GetKey("a"))
+                {
+                    forwardmove = true;
+                    backwardmove=false;
                 }
                 break;
             case "back":
-                if (!Input.GetKey(KeyCode.RightArrow) && !Input.GetKey("d")){
-                    rigidbodyComponent.AddForce(UnityEngine.Vector3.left * 30, ForceMode.VelocityChange);
+                if (!Input.GetKey(KeyCode.RightArrow) && !Input.GetKey("d"))
+                {
+                    backwardmove = true;
+                    forwardmove = false;
                 }
                 break;
             case "jump":
-                rigidbodyComponent.AddForce(UnityEngine.Vector3.up * 12, ForceMode.VelocityChange);
+                jumpmove = true;
                 break;
             case "collect":
                 collection = true;
+                break;
+            case "stop":
+                forwardmove = false;
+                backwardmove = false;
                 break;
 
         }
@@ -82,7 +94,7 @@ public class Player : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.Space) || jumpmove == true)
         {
             jumpKeyPressed = true;
 
@@ -92,20 +104,46 @@ public class Player : MonoBehaviour
             collection = true;
 
         }
+        if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey("a"))
+        {
+            forwardmove=false;
+        }
+        if (Input.GetKey(KeyCode.RightArrow) || Input.GetKey("d"))
+        {
+            backwardmove=false;
+        }
         horizontalInput = Input.GetAxis("Horizontal");
+    
     }
 
 
 //Fixed Update is called once every physics update
     private void FixedUpdate()
     {
-        rigidbodyComponent.velocity = new UnityEngine.Vector3(horizontalInput, rigidbodyComponent.velocity.y, 0);
+        rigidbodyComponent.velocity = new UnityEngine.Vector3(horizontalInput *1f, rigidbodyComponent.velocity.y, 0);
+        if (forwardmove == true)
+        {
+            rigidbodyComponent.velocity = new UnityEngine.Vector3(transform.localScale.x* 1f, rigidbodyComponent.velocity.y, 0);
+            if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey("a"))
+            {
+                forwardmove=false;
+            }
+        }
+        if (backwardmove == true)
+        {
+            rigidbodyComponent.velocity = new Vector3(-transform.localScale.x * 1f, rigidbodyComponent.velocity.y, 0);
+            if (Input.GetKey(KeyCode.RightArrow) || Input.GetKey("d"))
+            {
+                backwardmove=false;
+            }
+        }
 
         if (Physics.OverlapSphere(groundCheckTransform.position, 0.1f, playerMask ).Length == 0)
         {
           return;  
         }
         
+    
         if (jumpKeyPressed == true)
         {
             float jumpPower = 5f;
@@ -116,11 +154,11 @@ public class Player : MonoBehaviour
                 superJumpsRemaining --;
             }
             rigidbodyComponent.AddForce(UnityEngine.Vector3.up * 7, ForceMode.VelocityChange);
+            
             jumpKeyPressed = false;
-            collection = false;
-
-
+            jumpmove = false;
         }
+        
     }
     
     private void OnTriggerEnter(Collider other)

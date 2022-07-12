@@ -8,8 +8,8 @@ using TMPro;
 public class ScoreScript : MonoBehaviour
 {
     public TextMeshProUGUI scoreText;
-    public static int scoreValue;
-
+    public static int numberOfCoins = 7;
+    public static int scoreValue = 0;
 
     void Start()
     {
